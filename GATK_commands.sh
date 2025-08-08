@@ -137,3 +137,40 @@ gatk HaplotypeCaller \
 -I SRR101470_bqsr.bam \
 
 -O SRR101470_raw_variants.vcf.gz
+
+16. Annotate VCF with SnpEff
+#download latest version
+wget https://snepeff.blob.core.windows.net/versions/snpEff_latest_core.zip
+#unzip file
+unzip snpEff_latest_core.zip
+#Download the Appropriate Genome Database 
+java -jar snpEff.jar download GRCh38.99
+#Annotation
+java -Xmx4g -jar snpEff.jar GRCh38.99 ../SRR101470_raw_variants.vcf.gz>SRR101470_annotated.vcf
+
+17. ANNOVAR
+
+# Step 1: Download required databases into humandb
+perl ~/tools/annovar/annotate_variation.pl -buildver hg38 -downdb -webfrom annovar refGene ~/tools/annovar/humandb/
+perl ~/tools/annovar/annotate_variation.pl -buildver hg38 -downdb -webfrom annovar exac03 ~/tools/annovar/humandb/
+perl ~/tools/annovar/annotate_variation.pl -buildver hg38 -downdb -webfrom annovar clinvar_20250302 ~/tools/annovar/humandb/
+
+# Step 2: Convert VCF to avinput format
+perl ~/tools/annovar/convert2annovar.pl \
+  -format vcf4 \
+  ~/practice/ref_genome/chr1/SRR101470.vcf \
+  -outfile ~/practice/ref_genome/chr1/SRR101470.avinput \
+  -includeinfo
+
+# Step 3: Annotate variants
+perl ~/tools/annovar/table_annovar.pl \
+  ~/practice/ref_genome/chr1/SRR101470.avinput \
+  ~/tools/annovar/humandb/ \
+  -buildver hg38 \
+  -out ~/practice/ref_genome/chr1/SRR101470_annovar \
+  -remove \
+  -protocol refGene,exac03,clinvar_20250302 \
+  -operation g,f,f \
+  -nastring . \
+  -vcfinput
+
